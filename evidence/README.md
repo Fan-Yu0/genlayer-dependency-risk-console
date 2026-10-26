@@ -16,3 +16,5 @@
 - `mobile-result.png`: mobile decision metrics, advisory evidence, and evidence
   checks.
 - `public-site.png`: GitHub Pages deployment with the live contract record.
+- `portal-project-form-filled.png`: completed GenLayer Portal project form
+  with the GitHub repository attached as proof.
