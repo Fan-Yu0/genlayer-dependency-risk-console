@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/Fan-Yu0/genlayer-dependency-risk-console",
+  "visibility": "public",
+  "website": "https://fan-yu0.github.io/genlayer-dependency-risk-console/",
+  "pages_branch": "gh-pages",
+  "main_commit": "e5e7a5e45c6337c1894aca6d8b5b85866ee5e84f",
+  "pages_commit": "c02b5e2d26e02bb507506b79a249ed605d9d69ec",
+  "pages_status": "built",
+  "contract_address": "0x7493ED2C2DD1bBc81Fd05Dfdb47864cD67F91A2f",
+  "live_sample": {
+    "release_id": "payments-api-1.4.0",
+    "decision": "CLEAR",
+    "finding_count": 8,
+    "component_count": 2,
+    "osv_complete": true
+  }
+}
