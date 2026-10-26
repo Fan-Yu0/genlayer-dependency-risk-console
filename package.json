@@ -1,0 +1,43 @@
+{
+  "name": "dependency-risk-console",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A GenLayer release-admission console backed by live SBOM and OSV evidence.",
+  "homepage": "https://Fan-Yu0.github.io/genlayer-dependency-risk-console/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Fan-Yu0/genlayer-dependency-risk-console.git"
+  },
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint src",
+    "test": "vitest run",
+    "check": "npm run lint && npm test && npm run build",
+    "deploy": "npm run build && gh-pages -d dist",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "genlayer-js": "^1.1.8",
+    "lucide-react": "^1.61.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "gh-pages": "^6.3.0",
+    "jsdom": "^30.1.3",
+    "oxlint": "^1.88.0",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}
