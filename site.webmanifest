@@ -1,0 +1,16 @@
+{
+  "name": "Dependency Risk Console",
+  "short_name": "Risk Console",
+  "description": "Screen software releases with live SBOM and OSV evidence on GenLayer.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f2f5f1",
+  "theme_color": "#11261c",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
