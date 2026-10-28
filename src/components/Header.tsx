@@ -89,10 +89,11 @@ export function Header({
       </div>
       {!hasProvider && (
         <div className="wallet-hint">
-          Wallet not detected. Reads stay public; install an EIP-1193 wallet to
-          register or screen releases.
+          Wallet not detected. All reads are public; connect MetaMask (with the
+          GenLayer wallet snap) to register or screen releases.
         </div>
       )}
     </header>
   )
 }
+

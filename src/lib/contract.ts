@@ -51,23 +51,76 @@ function createWriteClient(address: string) {
   })
 }
 
+/**
+ * EIP-1193 wallets reject with plain objects ({ code, message }) instead of
+ * Error instances, so `instanceof Error` checks in the UI would otherwise
+ * collapse every wallet problem into a generic "Wallet connection failed".
+ */
+export function normalizeWalletError(cause: unknown): Error {
+  if (cause instanceof Error) return cause
+  const detail = cause as
+    | { code?: number; message?: string; data?: { message?: string } }
+    | undefined
+  if (detail?.code === 4001) {
+    return new Error('You rejected the request in your wallet.')
+  }
+  if (detail?.code === -32002) {
+    return new Error(
+      'A wallet request is already pending. Open your wallet to continue.',
+    )
+  }
+  const message = detail?.data?.message || detail?.message
+  return new Error(message || 'The wallet request failed.')
+}
+
+/**
+ * Connects the injected wallet for identity / read-only use. Only account
+ * access is requested so any EIP-1193 wallet can connect. Chain switching and
+ * the GenLayer signing snap are deferred to `ensureSigningReady`, which runs
+ * only when a write transaction is actually submitted.
+ */
 export async function connectWallet(): Promise<string> {
   const provider = getProvider()
-  const accounts = (await provider.request({
-    method: 'eth_requestAccounts',
-  })) as string[]
+  let accounts: string[]
+  try {
+    accounts = (await provider.request({
+      method: 'eth_requestAccounts',
+    })) as string[]
+  } catch (cause) {
+    throw normalizeWalletError(cause)
+  }
   if (!accounts[0]) throw new Error('The wallet did not return an account.')
-
-  const client = createWriteClient(accounts[0])
-  await (client as unknown as { connect: (chain: string) => Promise<void> }).connect(
-    'studionet',
-  )
   return accounts[0]
+}
+
+/**
+ * Prepares a wallet to sign GenLayer transactions: switches to StudioNet and
+ * requests the GenLayer MetaMask snap. Called lazily before the first write so
+ * connecting and every read-only flow work without a snap.
+ */
+export async function ensureSigningReady(address: string): Promise<void> {
+  const client = createWriteClient(address)
+  try {
+    await (
+      client as unknown as { connect: (chain: string) => Promise<void> }
+    ).connect('studionet')
+  } catch (cause) {
+    const normalized = normalizeWalletError(cause)
+    throw new Error(
+      `Wallet signing is not ready: ${normalized.message} GenLayer writes need MetaMask with the GenLayer wallet snap; read-only inspection works without a wallet.`,
+    )
+  }
 }
 
 export async function getConnectedAccounts(): Promise<string[]> {
   if (!window.ethereum) return []
-  return (await window.ethereum.request({ method: 'eth_accounts' })) as string[]
+  try {
+    return (await window.ethereum.request({
+      method: 'eth_accounts',
+    })) as string[]
+  } catch {
+    return []
+  }
 }
 
 export async function readScreening(
@@ -88,15 +141,20 @@ async function submitTransaction(
   args: CalldataEncodable[],
   onPhase: (phase: TransactionPhase, message: string, hash?: string) => void,
 ) {
+  await ensureSigningReady(account)
   const client = createWriteClient(account)
   onPhase('signing', 'Confirm the transaction in your wallet.')
 
-  const hash = await client.writeContract({
-    address: CONTRACT_ADDRESS as `0x${string}`,
-    functionName,
-    args,
-    value: 0n,
-  })
+  const hash = await client
+    .writeContract({
+      address: CONTRACT_ADDRESS as `0x${string}`,
+      functionName,
+      args,
+      value: 0n,
+    })
+    .catch((cause: unknown) => {
+      throw normalizeWalletError(cause)
+    })
 
   onPhase('submitted', `${action === 'register' ? 'Registration' : 'Screening'} submitted. Waiting for consensus.`, hash)
 
@@ -168,3 +226,4 @@ export async function screenRelease(
 export function transactionUrl(hash: string): string {
   return `https://explorer-studio.genlayer.com/tx/${hash}`
 }
+
