@@ -3,16 +3,24 @@
   "visibility": "public",
   "website": "https://fan-yu0.github.io/genlayer-dependency-risk-console/",
   "pages_branch": "gh-pages",
-  "main_commit": "9542ba7bc682fdc4cf47575a6cc80c75b81a8bbe",
-  "pages_commit": "a49c45bba62c3aad11238ca424e6116702378f06",
+  "main_commit": "9947dfcf0fc29a49b0e406514efa20ac0282fa5d",
+  "pages_commit": "d2744b7cfca48275b84bc02f62c85031fc491034",
   "pages_status": "built",
   "contract_address": "0x7493ED2C2DD1bBc81Fd05Dfdb47864cD67F91A2f",
-  "wallet_fix": "Connect only requests account access; chain switch and the GenLayer signing snap are requested lazily on the first write, and wallet errors are surfaced with clear messages.",
+  "wallet_fix": "Writes use standard EIP-1193 signing: the app adds and switches the wallet to StudioNet, then submits eth_sendTransaction. No MetaMask snap is required and StudioNet is gasless.",
   "live_sample": {
     "release_id": "payments-api-1.4.0",
     "decision": "CLEAR",
     "finding_count": 8,
     "component_count": 2,
     "osv_complete": true
+  },
+  "verified_screening": {
+    "release_id": "payments-api-1.4.0-verified",
+    "decision": "CLEAR",
+    "finding_count": 8,
+    "component_count": 2,
+    "osv_complete": true,
+    "transaction": "https://explorer-studio.genlayer.com/tx/0x594fdc778f39db660a9349174d0b3511e7c94d20788d7a71ae039cf8b4b0fded"
   }
 }
