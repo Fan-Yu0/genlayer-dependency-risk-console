@@ -5,13 +5,18 @@ import {
   TransactionStatus,
 } from 'genlayer-js/types'
 import type { CalldataEncodable } from 'genlayer-js/types'
-import { CONTRACT_ADDRESS, GENLAYER_RPC_URL } from '../config'
+import { CONTRACT_ADDRESS, EXPLORER_URL, GENLAYER_RPC_URL } from '../config'
 import type {
   ReleaseForm,
   Screening,
   TransactionPhase,
 } from '../types'
 import { normalizeScreening } from './normalize'
+import {
+  executionErrorMessage,
+  resolveExecutionResult,
+  type ReceiptLike,
+} from './receipt'
 
 interface EthereumProvider {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
@@ -75,9 +80,9 @@ export function normalizeWalletError(cause: unknown): Error {
 
 /**
  * Connects the injected wallet for identity / read-only use. Only account
- * access is requested so any EIP-1193 wallet can connect. Chain switching and
- * the GenLayer signing snap are deferred to `ensureSigningReady`, which runs
- * only when a write transaction is actually submitted.
+ * access is requested so any EIP-1193 wallet can connect. Switching to
+ * StudioNet is deferred to `ensureSigningReady`, which runs only when a write
+ * transaction is actually submitted.
  */
 export async function connectWallet(): Promise<string> {
   const provider = getProvider()
@@ -93,23 +98,80 @@ export async function connectWallet(): Promise<string> {
   return accounts[0]
 }
 
-/**
- * Prepares a wallet to sign GenLayer transactions: switches to StudioNet and
- * requests the GenLayer MetaMask snap. Called lazily before the first write so
- * connecting and every read-only flow work without a snap.
- */
-export async function ensureSigningReady(address: string): Promise<void> {
-  const client = createWriteClient(address)
-  try {
-    await (
-      client as unknown as { connect: (chain: string) => Promise<void> }
-    ).connect('studionet')
-  } catch (cause) {
-    const normalized = normalizeWalletError(cause)
-    throw new Error(
-      `Wallet signing is not ready: ${normalized.message} GenLayer writes need MetaMask with the GenLayer wallet snap; read-only inspection works without a wallet.`,
-    )
+const STUDIONET_CHAIN_ID = `0x${studionet.id.toString(16)}`
+
+function studioNetChainParams() {
+  return {
+    chainId: STUDIONET_CHAIN_ID,
+    chainName: studionet.name,
+    rpcUrls: [GENLAYER_RPC_URL],
+    nativeCurrency: studionet.nativeCurrency,
+    blockExplorerUrls: [EXPLORER_URL],
   }
+}
+
+function walletErrorCode(cause: unknown): number | undefined {
+  return (cause as { code?: number } | undefined)?.code
+}
+
+/**
+ * Makes sure the injected wallet is on StudioNet. This uses the plain EIP-1193
+ * chain APIs (add + switch) instead of genlayer-js `connect`, which requests
+ * the MetaMask Snaps plugin. StudioNet accepts ordinary EVM transactions, so
+ * any wallet that can add a custom chain can sign writes without a snap.
+ */
+async function switchToStudioNet(provider: EthereumProvider): Promise<void> {
+  const chainId = STUDIONET_CHAIN_ID
+  const current = (await provider
+    .request({ method: 'eth_chainId' })
+    .catch(() => undefined)) as string | undefined
+  if (typeof current === 'string' && current.toLowerCase() === chainId) return
+
+  try {
+    await provider.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId }],
+    })
+    return
+  } catch (cause) {
+    if (walletErrorCode(cause) === 4001) throw normalizeWalletError(cause)
+    const message = String(
+      (cause as { message?: string } | undefined)?.message ?? '',
+    ).toLowerCase()
+    const unknownChain =
+      walletErrorCode(cause) === 4902 ||
+      message.includes('unrecognized') ||
+      message.includes('not added') ||
+      message.includes('unknown chain')
+    if (!unknownChain) throw normalizeWalletError(cause)
+  }
+
+  try {
+    await provider.request({
+      method: 'wallet_addEthereumChain',
+      params: [studioNetChainParams()],
+    })
+  } catch (cause) {
+    throw normalizeWalletError(cause)
+  }
+
+  try {
+    await provider.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId }],
+    })
+  } catch (cause) {
+    if (walletErrorCode(cause) === 4001) throw normalizeWalletError(cause)
+  }
+}
+
+/**
+ * Prepares the injected wallet to sign GenLayer transactions by switching it to
+ * StudioNet. Called lazily before the first write so connecting and every
+ * read-only flow work without a wallet or a MetaMask snap.
+ */
+export async function ensureSigningReady(): Promise<void> {
+  await switchToStudioNet(getProvider())
 }
 
 export async function getConnectedAccounts(): Promise<string[]> {
@@ -141,7 +203,7 @@ async function submitTransaction(
   args: CalldataEncodable[],
   onPhase: (phase: TransactionPhase, message: string, hash?: string) => void,
 ) {
-  await ensureSigningReady(account)
+  await ensureSigningReady()
   const client = createWriteClient(account)
   onPhase('signing', 'Confirm the transaction in your wallet.')
 
@@ -165,12 +227,18 @@ async function submitTransaction(
     interval: 3000,
   })
 
-  const resultName = receipt.txExecutionResultName as string | undefined
+  const receiptLike = receipt as unknown as ReceiptLike
+  const resultName = resolveExecutionResult(receiptLike)
   if (!resultName) {
     throw new Error('The transaction finalized without an execution result.')
   }
   if (resultName === ExecutionResult.FINISHED_WITH_ERROR) {
-    throw new Error('The transaction finalized with a contract execution error.')
+    const detail = executionErrorMessage(receiptLike)
+    throw new Error(
+      detail
+        ? `The transaction finalized with a contract execution error: ${detail}`
+        : 'The transaction finalized with a contract execution error.',
+    )
   }
   if (resultName === 'TIMEOUT') {
     throw new Error('The transaction timed out during GenLayer execution.')

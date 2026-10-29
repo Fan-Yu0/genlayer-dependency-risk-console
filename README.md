@@ -93,8 +93,10 @@ the public OSV API and the published SBOM.
 
 - Connecting a wallet only requests account access, so any EIP-1193 wallet can
   connect and every read-only flow works without a wallet.
-- Submitting a write (`register_release` / `screen`) requires MetaMask with the
-  GenLayer wallet snap (`npm:genlayer-wallet-plugin`). The snap is requested
-  lazily on the first write, and the UI reports a clear message if it is
-  unavailable or the request is rejected.
+- Submitting a write (`register_release` / `screen`) is signed by the visitor's
+  wallet after the app adds and switches it to GenLayer StudioNet. StudioNet is
+  gasless (`eth_gasPrice` is 0), so no test tokens are required.
+- No MetaMask Snaps plugin is required. The console submits standard
+  `eth_sendTransaction` calls, so MetaMask, Rabby, and other EIP-1193 wallets
+  work as long as they can add the StudioNet chain.
 

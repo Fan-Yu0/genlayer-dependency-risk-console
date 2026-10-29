@@ -26,6 +26,11 @@ inspection, advisory evidence, coverage checks, Explorer links, responsive
 layouts, and a live sample record. The repository includes the deployed
 contract source, tests, documentation, and GitHub Pages deployment.
 
+Writes are signed with standard `eth_sendTransaction` after the console adds
+and switches the visitor's wallet to StudioNet. No MetaMask Snaps plugin is
+required, and StudioNet is gasless, so any EIP-1193 wallet can register and
+screen releases.
+
 ## Evidence
 
 - Website: https://Fan-Yu0.github.io/genlayer-dependency-risk-console/
@@ -34,3 +39,6 @@ contract source, tests, documentation, and GitHub Pages deployment.
   https://explorer-studio.genlayer.com/address/0x7493ED2C2DD1bBc81Fd05Dfdb47864cD67F91A2f
 - Live screening transaction:
   https://explorer-studio.genlayer.com/tx/0x9b9821bf3199912620bacfd3b5ba5ae3f2a23994777e77b45b30ec121626f778
+- Verified screening transaction after the wallet-signing fix (standard EVM
+  signing, no MetaMask snap):
+  https://explorer-studio.genlayer.com/tx/0x594fdc778f39db660a9349174d0b3511e7c94d20788d7a71ae039cf8b4b0fded

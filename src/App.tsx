@@ -191,7 +191,7 @@ function App() {
   async function handleConnect() {
     try {
       await wallet.connect()
-      setNotice({ tone: 'success', message: 'Wallet connected. Reads are ready; writes will ask for GenLayer signing.' })
+      setNotice({ tone: 'success', message: 'Wallet connected. Reads are ready; writes will ask you to switch to StudioNet.' })
     } catch (cause) {
       setNotice({
         tone: 'error',
